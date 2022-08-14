@@ -1,0 +1,57 @@
+from twilio.rest import Client
+import requests, time
+from bs4 import BeautifulSoup
+
+def get_page_html(url):
+    headers = {"User-Agent":"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/83.0.4103.116 Safari/537.36"}
+    page = requests.get(url, headers=headers)
+    if not page.status_code==200:
+        print(page.status_code)
+    return page.content
+
+def check_item_in_stock(page_html):
+    soup = BeautifulSoup(page_html, 'html.parser')
+    try:
+        out_of_stock_divs = soup.find("button", {"class": "btn_nDwA tx-link_29YD btn_1UzJ btn-yellow_2tf3"})  # <--- change "text" to div
+        if out_of_stock_divs:
+            return 'In stock!'
+        return 'Not in stock'
+    except:
+        return 'Not in stock'
+
+def print_sizes(page_html):
+    soup = BeautifulSoup(page_html, 'html.parser')
+    for div in soup.html.find_all('div', class_="size-item_1Sai rtl_3a50"):
+        print(div.text)
+
+def check_inventory():
+    url = "https://www.terminalx.com/X796640001?hmz_campaign=3744&hmz_inf=941&color=4"
+    page_html = get_page_html(url)
+    item_in_stock = check_item_in_stock(page_html)
+    print()
+    print(item_in_stock)
+    print()
+    if item_in_stock=='In stock!':
+        print_sizes(page_html)
+        return True
+    return False
+        
+def sen_sms_twilio():
+    client = Client("***********", "***********")
+    message = client.messages.create(to="your number",
+                       from_="your twilio number",
+                       body=" Item is in stock!!! "
+                            " get in to "
+                            " https://www.terminalx.com/X796640001?hmz_campaign=3744&hmz_inf=941&color=4 "
+                            " AND BUY IT RIGHT NOW! ")
+    print(message.sid)     
+
+
+while True:
+    print(time.ctime())
+    time.sleep(60)
+    if check_inventory(): # return true if item is in stock
+        break
+
+# after break if item is in stock
+send_sms_twilio()
